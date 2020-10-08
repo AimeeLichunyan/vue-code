@@ -42,16 +42,75 @@
     return Constructor;
   }
 
-  // 数据观测的方法
+  // 拿到数组原型的方法（或者拿到数组原来的方法）
+  var oldArrayProtoMethods = Array.prototype; // 继承原来数组的方法 arrayMethods.__proto__ = oldArrayProtoMethods,继承以后可以重写，如果没有重写，则会顺着原型链找到原来数组的方法
+
+  var arrayMethods = Object.create(oldArrayProtoMethods);
+  var methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice']; // 这是个高阶函数或者叫切片编程
+
+  methods.forEach(function (method) {
+    arrayMethods[method] = function () {
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+
+      // this就是ob
+      var result = oldArrayProtoMethods[method].apply(this, arguments);
+      var inserted;
+      var ob = this.__ob__;
+
+      switch (method) {
+        case 'push': // arr.push({a:1},{b:2})
+
+        case 'unshift':
+          // push和unshift方法都是追加的,追加的内容可能是对象类型，应该再次进行劫持
+          inserted = args;
+          break;
+
+        case 'splice':
+          // vue.$set实现的原理就是splice，删除，添加，修改
+          inserted = args.slice(2);
+      }
+
+      if (inserted) ob.observeArray(inserted); // 给数组新增的值进行观测
+
+      return result;
+    };
+  });
+
   var Observer = /*#__PURE__*/function () {
     function Observer(value) {
       _classCallCheck(this, Observer);
 
-      //   使用defineProperty 重新定义属性
-      this.walk(value);
+      // 使用defineProperty重新定义属性，
+      // 判断一个对象是否被观测过，看它有没有__ob__这个属性
+      Object.defineProperty(value, '__ob__', {
+        enumerable: false,
+        // 不能被，枚举，不能被循环出来
+        configurable: false,
+        value: this
+      }); // 判断是否是数组
+
+      if (Array.isArray(value)) {
+        // 调用push，shift，unshift,splice,sort,reverse,pop等操作
+        // 函数劫持，或者切片编程
+        value.__proto__ = arrayMethods; // 观测数组中的对象类型，对象变化触发一些操作
+
+        this.observeArray(value);
+      } else {
+        //   使用defineProperty 重新定义属性
+        this.walk(value);
+      }
     }
 
     _createClass(Observer, [{
+      key: "observeArray",
+      value: function observeArray(value) {
+        value.forEach(function (item) {
+          observe(item);
+        });
+      }
+    }, {
       key: "walk",
       value: function walk(data) {
         var keys = Object.keys(data);
@@ -65,14 +124,19 @@
   }();
 
   function defineReactive(data, key, value) {
+    // 为每一个对象添加defineProperty，getset函数，进行数据劫持
+    observe(value); // 递归进行检测，value是否是对象，只要对象层级比较深，就会不停的递归，影响性能，所以在vue3中使用proxy实现，vue3是懒递归
+
     Object.defineProperty(data, key, {
+      // 其实是一个闭包，当前作用域下data不销毁
       get: function get() {
-        console.log("get");
         return value;
       },
       set: function set(newValue) {
-        console.log("set");
+        console.log('设置');
         if (newValue == value) return; // 如果新值和老值一样则不赋值操作
+
+        observe(newValue); // 判断设置的新的值是不是对象，如果用户将值改为对象，则继续监控
 
         value = newValue;
       }
@@ -80,8 +144,12 @@
   }
 
   function observe(data) {
-    if (_typeof(data) !== "object" && data === null) {
-      return;
+    if (_typeof(data) !== "object" || data === null) {
+      return data;
+    }
+
+    if (data.__ob__) {
+      return data;
     }
 
     return new Observer(data);

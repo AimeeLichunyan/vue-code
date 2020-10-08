@@ -19,14 +19,12 @@
         el: "#app",
         data() {
           return {
-            arr: [1, 2, 3],
-            school: { name: "zf", age: 10 },
-            a: { a: { a: 1 } },
+            arr: [{a:1}],
           };
         },
       });
-      console.log("vm", vm._data);
-
+      vm._data.arr.push({b:1})
+      vm._data.arr[1].b = 100
       // 默认弄个数据会递归去用defineProperty进行拦截，性能差 -》 proxy
       // 我们开发功能时很少对数组索引进行操作,为了性能考虑不对数组进行拦截
       // 拦截可以改变数组的方法进行操作
