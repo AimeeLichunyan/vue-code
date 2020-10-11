@@ -1,3 +1,4 @@
+import { defineProperty } from "../utils";
 import { arrayMethods } from "./array";
 
 // 数据观测的方法
@@ -5,11 +6,8 @@ class Observer {
   constructor(value) {
     // 使用defineProperty重新定义属性，
     // 判断一个对象是否被观测过，看它有没有__ob__这个属性
-    Object.defineProperty(value,'__ob__',{
-      enumerable:false, // 不能被，枚举，不能被循环出来
-      configurable:false,
-      value: this
-    })
+    defineProperty(value,'__ob__',this)
+    
     // 判断是否是数组
     if(Array.isArray(value)) {
       // 调用push，shift，unshift,splice,sort,reverse,pop等操作
@@ -39,6 +37,7 @@ function defineReactive(data, key, value) {// 为每一个对象添加defineProp
   observe(value) // 递归进行检测，value是否是对象，只要对象层级比较深，就会不停的递归，影响性能，所以在vue3中使用proxy实现，vue3是懒递归
   Object.defineProperty(data, key, { // 其实是一个闭包，当前作用域下data不销毁
     get() {
+      console.log('q取值')
       return value;
     },
     set(newValue) {

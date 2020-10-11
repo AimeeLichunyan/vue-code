@@ -1,4 +1,5 @@
 import observe from "./observer/index.js";
+import { proxy } from "./utils.js";
 
 // 状态的初始化;
 export function initSate(vm) {
@@ -29,6 +30,11 @@ function initData(vm) {
   vm._data = data = typeof data == "function" ? data.call(vm) : data;
   //   数据的劫持方案： 对象object.defineProperty
   // 数组会单独处理
+
+  // 实现代理 -- 当我去vm上取值是，帮我将属性的取值代理大vm._data上
+  for(let key in data) {
+    proxy(vm,'_data',key)
+  }
   observe(data);
 }
 function initComputed() {}

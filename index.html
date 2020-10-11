@@ -23,14 +23,16 @@
           };
         },
       });
-      vm._data.arr.push({b:1})
-      vm._data.arr[1].b = 100
+      // vm._data.arr.push({b:1})
+      // vm._data.arr[1].b = 100
       // 默认弄个数据会递归去用defineProperty进行拦截，性能差 -》 proxy
       // 我们开发功能时很少对数组索引进行操作,为了性能考虑不对数组进行拦截
       // 拦截可以改变数组的方法进行操作
 
       // 渲染的操作 1） 默认会先找render方法  2) 默认没有传入render方法会查找template  3) 找当前el指定的元素中的内容来进行渲染
       // ast解析template =》 render函数
+      vm.arr = 100
+      console.log(vm.arr)
     </script>
   </body>
 </html>
