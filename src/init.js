@@ -32,9 +32,9 @@ export function initMixin(Vue) {
       }
       // 编译原理，将模板编译成render函数
       const render = compileToFunctions(template); // 将dom结构编译成函数
-      options.render = render
+      // options.render = render
     }
-    console.log(options.render) // 渲染时用的都是这个render方法
+    // console.log(options.render) // 渲染时用的都是这个render方法
 
   }
 }

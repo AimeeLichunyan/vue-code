@@ -7,11 +7,12 @@
   </head>
 
   <body>
-    <div id="app" style="color: red">
+    <!-- <div id="app" style="color: red">
       <p>hello world zf</p>
       <li>{{school.name}}</li>
       <li>{{school.age}}</li>
-    </div>
+    </div> -->
+    <div id="app" style="color: red">hello {{name}} <span>world</span> </div>
     <script src="dist/umd/vue.js"></script>
     <script>
       // options Api 通过一个选项进行配置
@@ -31,8 +32,7 @@
 
       // 渲染的操作 1） 默认会先找render方法  2) 默认没有传入render方法会查找template  3) 找当前el指定的元素中的内容来进行渲染
       // ast解析template =》 render函数
-      vm.arr = 100
-      console.log(vm.arr)
+      
     </script>
   </body>
 </html>
