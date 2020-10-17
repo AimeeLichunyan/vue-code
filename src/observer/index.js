@@ -55,5 +55,6 @@ export default function observe(data) {
   if(data.__ob__) {
     return data;
   }
-  return new Observer(data);
+  return new Observer(data); // 使用类的好处是方便识别当前这个属性属于哪个实例，只观测data中的数据
+  // 数组中的长度和索引如法被监控
 }

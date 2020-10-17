@@ -1,4 +1,5 @@
 import { compileToFunctions } from "./compiler/index";
+import { mountComponent } from "./lifecycle";
 import { initSate } from "./state";
 
 export function initMixin(Vue) {
@@ -24,6 +25,7 @@ export function initMixin(Vue) {
     const options = vm.$options;
 
     el = document.querySelector(el);
+    vm.$el = el;
     if(!options.render) {
       // 没有render方法，将template转化成render方法
       let template = options.template;
@@ -32,9 +34,13 @@ export function initMixin(Vue) {
       }
       // 编译原理，将模板编译成render函数
       const render = compileToFunctions(template); // 将dom结构编译成函数
-      // options.render = render
+      options.render = render
     }
+    // options.render
     // console.log(options.render) // 渲染时用的都是这个render方法
+
+    // 需要挂载这个组件
+    mountComponent(vm,el)
 
   }
 }

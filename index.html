@@ -12,7 +12,7 @@
       <li>{{school.name}}</li>
       <li>{{school.age}}</li>
     </div> -->
-    <div id="app" style="color: red">hello {{name}} <span>world</span> </div>
+    <div id="app" style="color: red">hello {{arr}} <span>{{school.name}}</span> </div>
     <script src="dist/umd/vue.js"></script>
     <script>
       // options Api 通过一个选项进行配置
@@ -20,7 +20,10 @@
         el: "#app",
         data() {
           return {
-            arr: [{a:1}],
+            arr: [1,2,3],
+            school: {
+              name:'zf'
+            }
           };
         },
       });

@@ -316,6 +316,15 @@
     return root;
   }
 
+  // {
+  //     tag: 'div',
+  //     parent: null,
+  //     type:1,
+  //     attrs: [],
+  //     children: [{
+  //         tag:null,
+  //         parent: div,父
+  //     }]
   // }
 
   function compileToFunctions(template) {
@@ -335,6 +344,56 @@
     var render = new Function("with(this){return ".concat(code, "}")); // console.log(render)
 
     return render; // 虚拟dom是用对象来描述节点，ast也可以描述js余元
+  }
+
+  function patch(oldVnode, vnode) {
+    // 将虚拟节点转化成真是节点
+    // 递归生成
+    // oldVnode是dom结构中真是的挂载点，<div id="app" style="color: red"></div>
+    // vnode是产生的虚拟节点
+    console.log(oldVnode, vnode);
+    var el = createElm(vnode); // 将虚拟dom节点产生真实的dom结构
+
+    var parentElm = oldVnode.parentNode; // 获取老的app的父级节点body
+
+    parentElm.insertBefore(el, oldVnode.nextSibling); // 将当前的真实元素插入到app的后面
+
+    parentElm.removeChild(oldVnode); // 删除老的app节点，即开始的真是dom挂载点
+  }
+
+  function createElm(vnode) {
+    var tag = vnode.tag,
+        children = vnode.children,
+        key = vnode.key,
+        data = vnode.data,
+        text = vnode.text;
+
+    if (typeof tag == 'string') {
+      //创建元素，放到vnode.el上
+      vnode.el = document.createElement(tag);
+      console.log('children', children);
+      children.forEach(function (child) {
+        // 遍历儿子，将儿子渲染后的结构扔到父亲中
+        vnode.el.appendChild(createElm(child));
+      });
+    } else {
+      // 创建文件，放到vnode.el上
+      vnode.el = document.createTextNode(text);
+    }
+
+    return vnode.el;
+  } // vue的渲染流程 1.初始化数据 2. 将模板进行编译成render函数，生成虚拟节点，生成真是的dom，渲染到页面
+
+  function lifecycleMixin(Vue) {
+    Vue.prototype._update = function (vnode) {
+      var vm = this;
+      patch(vm.$el, vnode); // 比较重要的的方法，将虚拟节点创建为真实节点
+    };
+  }
+  function mountComponent(vm, el) {
+    // 调用render方法去渲染el属性
+    // 先调用render方法，创建虚拟节点，在将虚拟节点渲染到页面上
+    vm._update(vm._render());
   }
 
   function proxy(vm, data, key) {
@@ -462,7 +521,8 @@
       return data;
     }
 
-    return new Observer(data);
+    return new Observer(data); // 使用类的好处是方便识别当前这个属性属于哪个实例，只观测data中的数据
+    // 数组中的长度和索引如法被监控
   }
 
   function initSate(vm) {
@@ -517,6 +577,7 @@
       var vm = this;
       var options = vm.$options;
       el = document.querySelector(el);
+      vm.$el = el;
 
       if (!options.render) {
         // 没有render方法，将template转化成render方法
@@ -529,21 +590,78 @@
 
 
         var render = compileToFunctions(template); // 将dom结构编译成函数
-        // options.render = render
-      } // console.log(options.render) // 渲染时用的都是这个render方法
 
+        options.render = render;
+      } // options.render
+      // console.log(options.render) // 渲染时用的都是这个render方法
+      // 需要挂载这个组件
+
+
+      mountComponent(vm);
+    };
+  }
+
+  function renderMixin(Vue) {
+    Vue.prototype._c = function () {
+      //创建虚拟dom元素
+      return createElement.apply(void 0, arguments);
+    };
+
+    Vue.prototype._s = function (val) {
+      // stringify
+      return val == null ? '' : _typeof(val) == 'object' ? JSON.stringify(val) : val;
+    };
+
+    Vue.prototype._v = function (text) {
+      // 创建虚拟dom文本元素
+      return createTextVnode(text);
+    };
+
+    Vue.prototype._render = function () {
+      var vm = this;
+      var render = vm.$options.render;
+      var vnode = render.call(vm);
+      return vnode;
+    };
+  }
+
+  function createElement(tag) {
+    var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    for (var _len = arguments.length, children = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+      children[_key - 2] = arguments[_key];
+    }
+
+    return vnode(tag, data, children);
+  }
+
+  function createTextVnode(text) {
+    return vnode(undefined, undefined, undefined, undefined, text);
+  } // 用于产生虚拟dom，可以创建一些自定义属性
+
+
+  function vnode(tag, data, key, children, text) {
+    return {
+      tag: tag,
+      data: data,
+      key: key,
+      children: children,
+      text: text
     };
   }
 
   function Vue(options) {
-    console.log(options);
+    this._init(options); // 组件初始化的入口
 
-    this._init(options);
   } //写成一个个的插件进行扩展，解耦方法
   // vue初始化方法
 
 
-  initMixin(Vue);
+  initMixin(Vue); // init方法
+
+  lifecycleMixin(Vue); // 混合生命周期，渲染dom _update
+
+  renderMixin(Vue); // _render
 
   return Vue;
 

@@ -1,4 +1,5 @@
 import { generate } from "./generate"
+import { parseHTML } from "./parse"
 // <div id="my">hello {{name}} <span>world</span> </div>
 // {
 //     tag: 'div',
@@ -8,9 +9,6 @@ import { generate } from "./generate"
 //     children: [{
 //         tag:null,
 //         parent: div,父
-
-import { parseHTML } from "./parse"
-
 //     }]
 // }
 
@@ -35,4 +33,6 @@ export function compileToFunctions(template) {
     // 虚拟dom是用对象来描述节点，ast也可以描述js余元
 
     
+        
+
 }
