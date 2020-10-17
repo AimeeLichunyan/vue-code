@@ -2,6 +2,7 @@ export function renderMixin(Vue) {
     Vue.prototype._c = function() { //创建虚拟dom元素
         return createElement(...arguments)
     }
+    // 1. 当结果是对象时，会对这个对象取值
     Vue.prototype._s = function(val) { // stringify
         return val == null ? '' : (typeof val == 'object') ? JSON.stringify(val): val
     }

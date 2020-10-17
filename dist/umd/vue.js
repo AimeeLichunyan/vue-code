@@ -4,6 +4,88 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 }(this, (function () { 'use strict';
 
+  function proxy(vm, data, key) {
+    Object.defineProperty(vm, key, {
+      get: function get() {
+        return vm[data][key];
+      },
+      set: function set(newValue) {
+        vm[data][key] = newValue;
+      }
+    });
+  }
+  function defineProperty(target, key, value) {
+    Object.defineProperty(target, key, {
+      enumerable: false,
+      // 不能被，枚举，不能被循环出来
+      configurable: false,
+      value: value
+    });
+  }
+  var LIFECYCLE_HOOKS = ['beforeCreate', 'created', 'beforeMount', 'updated', 'beforeDestroy', 'destroyed'];
+  var starts = [];
+
+  starts.data = function (parentVal, childVal) {
+    console.log(parentVal, childVal);
+  };
+
+  starts.computed = function () {};
+
+  starts.watch = function () {};
+
+  function mergeHook(parentVal, childVal) {
+    if (childVal) {
+      if (parentVal) {
+        return parentVal.concat(childVal); //父子进行拼接
+      } else {
+        return [childVal]; // 将儿子转化成一个数组
+      }
+    } else {
+        return parentVal; // 不合并采用父级
+      }
+  }
+
+  LIFECYCLE_HOOKS.forEach(function (hook) {
+    starts[hook] = mergeHook;
+  });
+  function mergeOptions(parent, child) {
+    var options = {}; // 遍历父亲，可能父亲有，儿子没有；父亲和儿子都有的在这里处理
+
+    for (var key in parent) {
+      console.log('1', key);
+      mergeField(key);
+    } // 遍历儿子，儿子有父亲没有
+
+
+    for (var _key in child) {
+      console.log('2', _key);
+      mergeField(_key);
+    }
+
+    function mergeField(key) {
+      // console.log(key)
+      if (starts[key]) {
+        options[key] = starts[key](parent[key], child[key]); // 主要一下
+      } else {
+        options[key] = child[key];
+      }
+    }
+
+    return options;
+  }
+
+  function initGlobalApi(Vue) {
+    Vue.options = {};
+
+    Vue.mixin = function (mixin) {
+      // console.log(mixin)
+      this.options = mergeOptions(this.options, mixin);
+      console.log(this.options); // this.options = {created:[a,b,c]}
+    };
+  } // 合并对象，只考虑生命周期，不考虑watch，computed
+  // function mergeOptions() {
+  // }
+
   function _typeof(obj) {
     "@babel/helpers - typeof";
 
@@ -346,73 +428,27 @@
     return render; // 虚拟dom是用对象来描述节点，ast也可以描述js余元
   }
 
-  function patch(oldVnode, vnode) {
-    // 将虚拟节点转化成真是节点
-    // 递归生成
-    // oldVnode是dom结构中真是的挂载点，<div id="app" style="color: red"></div>
-    // vnode是产生的虚拟节点
-    console.log(oldVnode, vnode);
-    var el = createElm(vnode); // 将虚拟dom节点产生真实的dom结构
-
-    var parentElm = oldVnode.parentNode; // 获取老的app的父级节点body
-
-    parentElm.insertBefore(el, oldVnode.nextSibling); // 将当前的真实元素插入到app的后面
-
-    parentElm.removeChild(oldVnode); // 删除老的app节点，即开始的真是dom挂载点
-  }
-
-  function createElm(vnode) {
-    var tag = vnode.tag,
-        children = vnode.children,
-        key = vnode.key,
-        data = vnode.data,
-        text = vnode.text;
-
-    if (typeof tag == 'string') {
-      //创建元素，放到vnode.el上
-      vnode.el = document.createElement(tag);
-      console.log('children', children);
-      children.forEach(function (child) {
-        // 遍历儿子，将儿子渲染后的结构扔到父亲中
-        vnode.el.appendChild(createElm(child));
-      });
-    } else {
-      // 创建文件，放到vnode.el上
-      vnode.el = document.createTextNode(text);
-    }
-
-    return vnode.el;
-  } // vue的渲染流程 1.初始化数据 2. 将模板进行编译成render函数，生成虚拟节点，生成真是的dom，渲染到页面
-
   function lifecycleMixin(Vue) {
     Vue.prototype._update = function (vnode) {
-      var vm = this;
-      patch(vm.$el, vnode); // 比较重要的的方法，将虚拟节点创建为真实节点
     };
   }
   function mountComponent(vm, el) {
     // 调用render方法去渲染el属性
     // 先调用render方法，创建虚拟节点，在将虚拟节点渲染到页面上
-    vm._update(vm._render());
-  }
+    callHook(vm, 'beforeMounted');
 
-  function proxy(vm, data, key) {
-    Object.defineProperty(vm, key, {
-      get: function get() {
-        return vm[data][key];
-      },
-      set: function set(newValue) {
-        vm[data][key] = newValue;
-      }
-    });
+    vm._update(vm._render());
+
+    callHook(vm, 'mounted');
   }
-  function defineProperty(target, key, value) {
-    Object.defineProperty(target, key, {
-      enumerable: false,
-      // 不能被，枚举，不能被循环出来
-      configurable: false,
-      value: value
-    });
+  function callHook(vm, hook) {
+    var handlers = vm.$options[hook]; // vm.$options.create = [a1,a2,a3]
+
+    if (handlers) {
+      for (var i = 0; i < handlers.length; i++) {
+        handlers[i].call(vm); // 更改生命周期的this
+      }
+    }
   }
 
   // 拿到数组原型的方法（或者拿到数组原来的方法）
@@ -562,7 +598,10 @@
       vm.$options = options; // 初始化状态（数据做初始化劫持，改变数据时应该更新视图）
       //  vue 组件中很多状态，data,props,watch,computed
 
-      initSate(vm); // vue核心特性：响应式数据原理
+      vm.$options = mergeOptions(vm.constructor.options, options);
+      callHook(vm, 'beforeCreate');
+      initSate(vm);
+      callHook(vm, 'created'); // vue核心特性：响应式数据原理
       // Vue 是什么框架，MVVM（不完全是）怎么是？ 数据变化视图会更新，视图变化数据会被影响，
       // 怎么不是？ mvvm不能跳过数据直接更新视图，但是vue有$ref可以直接操作dom
       // 如果有el属性，说明要渲染模板
@@ -570,7 +609,8 @@
       if (vm.$options.el) {
         vm.$mount(vm.$options.el);
       }
-    };
+    }; // 渲染的时候，先找render，template,外部template（这些都要是el存在的时候）
+
 
     Vue.prototype.$mount = function (el) {
       // 挂载操作
@@ -587,6 +627,7 @@
           // 没有tamplatet，有el，直接采用外部模板，即我们平时的写法
           template = el.outerHTML; // el.outerHTML拿到el所在的html元素
         } // 编译原理，将模板编译成render函数
+        // 1. 处理模板变为ast树深度遍历， 2.标记静态节点，可以减少比对，提高性能，3. codegen-render函数生成，用了树和栈 4： new funtion+with（抛出render函数）
 
 
         var render = compileToFunctions(template); // 将dom结构编译成函数
@@ -605,7 +646,8 @@
     Vue.prototype._c = function () {
       //创建虚拟dom元素
       return createElement.apply(void 0, arguments);
-    };
+    }; // 1. 当结果是对象时，会对这个对象取值
+
 
     Vue.prototype._s = function (val) {
       // stringify
@@ -655,6 +697,7 @@
 
   } //写成一个个的插件进行扩展，解耦方法
   // vue初始化方法
+  // 原型方法
 
 
   initMixin(Vue); // init方法
@@ -662,6 +705,9 @@
   lifecycleMixin(Vue); // 混合生命周期，渲染dom _update
 
   renderMixin(Vue); // _render
+  // 静态方法Vue.component,Vue.directive,Vue.extend,Vue.mixin
+
+  initGlobalApi(Vue);
 
   return Vue;
 

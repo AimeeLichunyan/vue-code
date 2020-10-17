@@ -13,13 +13,31 @@ function createElm(vnode) {
     let {tag,children,key,data,text} = vnode;
     if(typeof tag == 'string' ) { //创建元素，放到vnode.el上
         vnode.el = document.createElement(tag);
+        // 只有元素才有属性
+        updateProperties(vnode)
         console.log('children',children)
-        children.forEach(child => { // 遍历儿子，将儿子渲染后的结构扔到父亲中
-            vnode.el.appendChild(createElm(child))
-        })
+        // children.forEach(child => { // 遍历儿子，将儿子渲染后的结构扔到父亲中
+        //     vnode.el.appendChild(createElm(child))
+        // })
     }else { // 创建文件，放到vnode.el上
         vnode.el = document.createTextNode(text)
     }
     return vnode.el
 }
 // vue的渲染流程 1.初始化数据 2. 将模板进行编译成render函数，生成虚拟节点，生成真是的dom，渲染到页面
+
+function updateProperties(vnode) {
+    let el = vnode.el;
+    let newProps = vnode.data || {}
+    for(let key in newProps) {
+        if(key == 'style') {
+            for(let style in newProps.style) {
+                el.style[styleName] = newProps.style[styleName]
+            }
+        }else if(key == 'class') {
+            el.className = el.class
+        }else {
+            el.setAttribute(key,newProps[key])
+        }
+    }
+}
