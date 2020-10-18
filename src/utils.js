@@ -70,3 +70,39 @@ export function proxy(vm,data,key) {
     }
     return options;
   }
+  const callBacks = [];
+  let pending = false // 批量处理的标志位
+  function flushCallbacks() {
+    callBacks.forEach(cb => cb())
+    pending = false
+    callBacks = []
+  }
+  let timerFunc;
+  if(Promise) {
+    timerFunc = () => {
+      Promise.resolve().then(flushCallbacks)
+    }
+  }else if(MutationObserver) { // 不支持promise,可监控dom的变化，监控完毕后异步更新
+    let observe = new MutationObserver(flushCallbacks);
+    let textNode = document.createTextNode(1); // 创建一个文本节点
+    observe.observe(textNode,{characterData:true}); // 观测文本节点中的内容
+    timerFunc = () => {
+      textNode.textContent = 2
+    }
+  }else if(setImmediate) {
+    timerFunc = () => {
+      setImmediate(flushCallbacks)
+    }
+  }else {
+    timerFunc = () => {
+      setTimeout(flushCallbacks)
+    }
+  }
+  export function nextTick(cb) { // 核心就是异步
+    callBacks.push(cb)
+    // vue3 nextTick原理就是用的promise.then 没有做兼容处理
+    if(!pending) {
+    timerFunc(); // 这个方法是异步的，做了兼容处理
+      pending = true
+    }
+  }

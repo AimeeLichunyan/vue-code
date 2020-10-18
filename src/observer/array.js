@@ -29,6 +29,7 @@ methods.forEach(method => {
                 break;
         }
         if(inserted) ob.observeArray(inserted) // 给数组新增的值进行观测
+        ob.dep.notify() // 通知数组更新
         return result
     }
 })

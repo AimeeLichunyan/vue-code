@@ -1,5 +1,6 @@
 import observe from "./observer/index.js";
-import { proxy } from "./utils.js";
+import Watcher from "./observer/watcher.js";
+import { nextTick, proxy } from "./utils.js";
 
 // 状态的初始化;
 export function initSate(vm) {
@@ -38,4 +39,38 @@ function initData(vm) {
   observe(data);
 }
 function initComputed() {}
-function initWatch() {}
+function initWatch(vm) {
+  let watch = vm.$options.watch;
+  console.log(watch)
+  for(let key in watch) {
+    const handler = watch[key]; // handler的情况
+    if(Array.isArray(handler)) { // 数组
+
+    }else {
+      createWatcher(vm,key,handler) // 字符串，对象，函数
+    }
+  }
+}
+function createWatcher(vm,exprOrFn,handler,options) {
+  // options 可以用来标识，是用户的watcher
+  if(typeof handler == 'object') {
+    options = handler;
+    handler = handler.handler
+  }
+  if(typeof handler == 'string') {
+    handler = vm[handler]
+  }
+  return vm.$watch(exprOrFn,handler,options)
+}
+export function stateMixin(Vue) {
+  Vue.prototype.$nextTick = function(cb) {
+    console.log(cb)
+    nextTick(cb)
+  }
+  Vue.prototype.$watch = function(exprOrFn,handler,options) {
+   let watcher = new Watcher(vm, exprOrFn,cb,options) // 原理还是用的watcher
+   if(options.immediate) {
+    cb() // 如果是immediate，则是立即执行
+   }
+  }
+}
