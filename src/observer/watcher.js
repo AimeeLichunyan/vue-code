@@ -6,7 +6,10 @@ class Watcher {
         this.vm = vm, // vm实例
         this.exprOrFn = exprOrFn; // exprOrFn vm._update()
         this.cb = cb;
-        this.options = 
+        this.options = options
+        this.user = options.user;
+        this.lazy = options.lazy //如果watcher上有lazy属性，说明就是一个计算属性
+        this.dirty = this.lazy // dirty代表取值时是否执行用户提供的方法
         this.id = id++ // watcher的唯一标识
         this.deps = [];
         this.depsId = new Set()
@@ -22,7 +25,8 @@ class Watcher {
                 return obj
             }
         }
-        this.get()
+        // 默认会调用一次get方法，进行取值，将结果保留下来
+        this.value = this.lazy ? void 0 : this.get()
     }
     addDep(dep) {
         let id = dep.id;
@@ -34,16 +38,33 @@ class Watcher {
     }
     get() {
         pushTarget(this) // 当前watcher实例
-        this.getter() // 调用exprOrFn，渲染页面取值，要调用get方法，render方法 with(vm){_v(msg)}
-        popTarget()
+        let result = this.getter.call(this.vm) // 调用exprOrFn，渲染页面取值，要调用get方法，render方法 with(vm){_v(msg)}
+        popTarget() // 渲染完成后，将watcher删除掉
+        return result
     }
     update() {
-
-        // 这里不要每次都调用get方法，get方法会重新渲染页面
-        queueWatcher(this)
-       this.get() 
+        if(this.lazy) { // 是计算属性
+            this.dirty = true; // 页面重新渲染就可以获得最新的值了
+        }else {
+            // 这里不要每次都调用get方法，get方法会重新渲染页面
+            queueWatcher(this)
+            //    this.get() 
+        }
+        
     }
-    
+    evaluate() { // 求值的时候执行
+        this.value = this.get();
+        this.dirty = false // 取过一次值之后，就表示已经取过值了
+
+    }
+    depend() {
+        // 计算属性watcher，会存储dep，dep会存储watcher
+        // 通过watcher找到对应的所有dep，让所有的
+        let i= this.deps.length;
+        while(i--){
+            this.deps[i].depend(); // 让dep去存储渲染watcher
+        }
+    }
 }
 function flushSchedulerQueue() {
     queue.forEach(watcher => {

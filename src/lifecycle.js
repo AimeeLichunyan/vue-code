@@ -5,13 +5,21 @@ export function lifecycleMixin(Vue) {
     Vue.prototype._update = function(vnode) {
         const vm= this
         // patch(vm.$el,vnode) // 比较重要的的方法，将虚拟节点创建为真实节点
+        const preVnode = vm.vnode;
+        if(!preVnode) {
+            vm.$el = patch(vm.$el,vnode)
+        }else {
+            // 拿上次的vnode和本次的做对比
+            vm.$el = patch(preVnode,vnode)
+        }
+        vm_vnode = vnode; // 保存第一次的vnode
     }
 }
 
 export function mountComponent(vm,el) {
     // 调用render方法去渲染el属性
 
-
+    vm
     // 先调用render方法，创建虚拟节点，在将虚拟节点渲染到页面上
     callHook(vm,'beforeMounted')
     let updateComponent = () => {

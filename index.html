@@ -35,7 +35,8 @@
 
       // 渲染的操作 1） 默认会先找render方法  2) 默认没有传入render方法会查找template  3) 找当前el指定的元素中的内容来进行渲染
       // ast解析template =》 render函数
-      
+
+      // watch 和computed 一个是基于缓存的，一个不是基于缓存的；一个是属性变了调用不调用watcher，一个是基于dirty的脏检查
     </script>
   </body>
 </html>
